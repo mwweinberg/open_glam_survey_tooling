@@ -1,0 +1,7 @@
+__pycache__/
+dev_elements/
+py_survey/
+logs/
+secrets.py
+internal_readme.md
+.DS_Store
