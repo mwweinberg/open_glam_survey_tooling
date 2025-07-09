@@ -166,7 +166,7 @@ def get_open_data_volume_from_europeana_url(url_from_field):
     #https://www.europeana.eu/search?qf=DATA_PROVIDER%3A%22Museum%20Rotterdam%22&query=&reusability=open
     if 'DATA_PROVIDER' in url_from_field:
         print('DATA_PROVIDER entry')
-        extracted_uid_pattern = r'%22(.*?)%22'
+        extracted_uid_pattern = r'DATA_PROVIDER%3A%22(.*?)%22'
         extracted_museum_name = re.search(extracted_uid_pattern, url_from_field).group(1)
         formatted_extracted_museum_name = extracted_museum_name.replace('%20', '+')
         count_query_url = 'https://api.europeana.eu/record/search.json?wskey=' + europeana_api_key + '&sort=score+desc,contentTier+desc,random_europeana+asc,timestamp_update+desc,europeana_id+asc&qf=DATA_PROVIDER:"' + formatted_extracted_museum_name + '"&qf=contentTier:(1+OR+2+OR+3+OR+4)&query=*:*&reusability=open'
