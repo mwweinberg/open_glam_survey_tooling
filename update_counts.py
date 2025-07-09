@@ -160,6 +160,91 @@ def get_flickr_upload_count_by_url(url_from_field):
     print(target_count)
     return target_count
 
+def get_open_data_volume_from_europeana_url(url_from_field):
+    europeana_api_key = secrets.europeana_api_key
+    #some urls  look like:
+    #https://www.europeana.eu/search?qf=DATA_PROVIDER%3A%22Museum%20Rotterdam%22&query=&reusability=open
+    if 'DATA_PROVIDER' in url_from_field:
+        print('DATA_PROVIDER entry')
+        extracted_uid_pattern = r'%22(.*?)%22'
+        extracted_museum_name = re.search(extracted_uid_pattern, url_from_field).group(1)
+        formatted_extracted_museum_name = extracted_museum_name.replace('%20', '+')
+        count_query_url = 'https://api.europeana.eu/record/search.json?wskey=' + europeana_api_key + '&sort=score+desc,contentTier+desc,random_europeana+asc,timestamp_update+desc,europeana_id+asc&qf=DATA_PROVIDER:"' + formatted_extracted_museum_name + '"&qf=contentTier:(1+OR+2+OR+3+OR+4)&query=*:*&reusability=open'
+
+        
+    #others look like
+    #https://www.europeana.eu/en/collections/organisation/4550-national-library-of-finland?page=1&reusability=open
+    else:
+
+        #FIRST you need to get the uid from the URL you have and use that to get the second uid from the API
+        #if you query the API with the old (long) uid, it will automatically return the entry for the new (short) uid. 
+        #this makes extracting both uids slightly more complicated
+
+        #regex to find the uid from the url
+        extracted_uid_pattern = r"organisation/(\d+)-"
+        #does the regex
+        extracted_uid_object = re.search(extracted_uid_pattern, url_from_field)
+        #when there is a match, pull the actual number out
+        if extracted_uid_object:
+            uid_for_api_call = extracted_uid_object.group(1)
+            #print(f'uid_for_api_call is {uid_for_api_call}')
+        else:
+            print(f"unable to extract UID from {url_from_field}")
+            return 'broken'
+
+        #construct the API call
+        uid_lookup_api_url = 'https://api.europeana.eu/entity/organization/' + uid_for_api_call + '.json?wskey=' + europeana_api_key
+        #call the api
+        extracted_uid_api_response = requests.get(uid_lookup_api_url)
+        #format the data
+        extracted_uid_api_reseponse_formatted = extracted_uid_api_response.json()
+        #the first extracted uid comes from the 'id' field url
+        api_id_field = extracted_uid_api_reseponse_formatted['id']
+        extracted_uid_0 = api_id_field.replace('http://data.europeana.eu/organization/', '')
+        #api returns a bunch of 'sameAs' links. If there is a second uid, it will be in there
+        sameas_links = extracted_uid_api_reseponse_formatted['sameAs']
+        #work through the links to find the right one
+        found_a_europeana_url = 0
+        for i in sameas_links:
+            if 'http://data.europeana.eu/organization/' in i:
+                #remove the front of the url so you are left with the uid
+                extracted_uid_1 = i.replace('http://data.europeana.eu/organization/', '')
+                #this prevents this if/else statment from overwriting extracted_uid_1 with "empty" if non-europeana links follow the europeana one in the list
+                found_a_europeana_url = 1
+            #if the link is not europeana AND the if statement above hasn't already set the value for extracted_uid_1
+            elif found_a_europeana_url == 0:
+                #set this to empty so it is ignored in step 2
+                extracted_uid_1 = "empty"
+        #print(f'extracted_uid_0 is {extracted_uid_0}')
+        #print(f'extracted_uid_1 is {extracted_uid_1}')
+
+        #SECOND you need to build the one- or two-uid url to make the api call
+        
+        if extracted_uid_1 == 'empty':
+            #construct a 1 uid url
+            count_query_url = 'https://api.europeana.eu/record/search.json?wskey=' + europeana_api_key + '&qf=foaf_organization:"http://data.europeana.eu/organization/' + extracted_uid_0 +'"&query=foaf_organization:"http://data.europeana.eu/organization/' + extracted_uid_0 + '"&reusability=open'
+            #print(f'one query url: {count_query_url}')
+        else:
+            #construct a 2 uid url
+            count_query_url = 'https://api.europeana.eu/record/search.json?wskey=' + europeana_api_key + '&qf=foaf_organization:"http://data.europeana.eu/organization/' + extracted_uid_0 +'"+OR+foaf_organization:"http://data.europeana.eu/organization/' + extracted_uid_1 +'"&query=foaf_organization:"http://data.europeana.eu/organization/' + extracted_uid_0 + '"+OR+foaf_organization:"http://data.europeana.eu/organization/' + extracted_uid_1 + '"&reusability=open'
+            #print(f'two query url: {count_query_url}')
+            
+
+    #THIRD, now that you have the target url (from if or else) you need to get the count from the API
+    #get the api payload
+    object_count_api_response = requests.get(count_query_url)
+    #turn it into a json
+    extracted_object_count_api_response = object_count_api_response.json()
+    #get the count (int)
+    unformatted_object_count = extracted_object_count_api_response['totalResults']
+    #add the commas
+    formatted_volume_count = "{:,}".format(unformatted_object_count)
+    #turn it into a string
+    target_count = str(formatted_volume_count)
+
+    #print(target_count)
+    return target_count
+
 #small function to update the volume data after the platform-specific if/elifs below
 #hopefully it reduces the chance of things breaking because you don't have to make changes many different places
 def updated_data_report(returned_value, input_url):
@@ -205,6 +290,10 @@ for i in list_of_institutions_with_fields:
             flickr_url = fields['open_data_platform_url']
             flickr_value = get_flickr_upload_count_by_url(flickr_url)
             updated_open_data_volume = updated_data_report(flickr_value, flickr_url)
+        elif fields['open_data_platform'] == 'Europeana':
+            europeana_url = fields['open_data_platform_url']
+            europeana_value = get_open_data_volume_from_europeana_url(europeana_url)
+            updated_open_data_volume = updated_data_report(europeana_value, europeana_url)
         #TODO: elifs for all of the other platforms - return values as strings with commas 
         #catch-all for everything without a function to update it - don't change anything!
         else:
