@@ -90,11 +90,17 @@ for i in list_of_institutions_with_fields:
         #print('^^^^^^^')
 print('added data platforms')
 
-#the 'pretty_url' field is just the stub. This step adds the full url
 
+#this is where you clean up the data with small tweaks
 for i in list_of_institutions_with_fields:
+    #the 'pretty_url' field is just the stub. This step adds the full url
     updated_pretty_url = 'https://survey.glamelab.org/institutions/'+ i['pretty_url']
     i['pretty_url'] = updated_pretty_url
+
+    #if the first_open_access_instance date is empty it defaults to 1/1/70. That is read as "null" when the site is being built. This changes the output to match that. 
+    if i['first_open_access_instance'] == '1970-01-01T00:00:00.000Z':
+        i['first_open_access_instance'] = 'null'
+
 
 
 
