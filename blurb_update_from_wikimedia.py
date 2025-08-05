@@ -12,7 +12,7 @@ import yagmail
 space_ID = secrets.api_test_space_ID
 #access_token = secrets.test_env_token
 management_api_token = secrets.test_env_token
-api_environment_id = 'api-test'
+api_environment_id = secrets.api_env
 #initiate the client
 client = contentful_management.Client(management_api_token)
 
