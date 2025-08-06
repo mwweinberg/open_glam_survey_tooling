@@ -26,6 +26,9 @@ send_email = 0
 send_email_address = ["mweinberg@nyu.edu", "hello@michaelweinberg.org"]
 
 
+error_log_contents = []
+
+
 def build_institution_list():
 
     #STEP 0: create a holder for the institution IDs
@@ -33,17 +36,42 @@ def build_institution_list():
 
     #STEP 1: get all of the 'surveyInstitution' entries 
     #returns some sort of object of the entries
-    entries_just_institutions = client.entries(space_ID, api_environment_id).all({'content_type': 'surveyInstitution'})
-    #append all of the object ids to institution_id_list
-    for i in entries_just_institutions:
-        #extract the institution ID
-        entry_id = i.id
-        #add the institution id to the list
-        institution_id_list.append(entry_id)
-        #print for testing/debugging 
-        # print(entry_id)
+    # entries_just_institutions = client.entries(space_ID, api_environment_id).all({'content_type': 'surveyInstitution'})
+    # #append all of the object ids to institution_id_list
+    # for i in entries_just_institutions:
+    #     #extract the institution ID
+    #     entry_id = i.id
+    #     #add the institution id to the list
+    #     institution_id_list.append(entry_id)
+    #     #print for testing/debugging 
+    #     # print(entry_id)
+    #     #print(f'institution_id_list length = {len(institution_id_list)}')
+
+    #updated version of STEP 1 to deal with contentful pagination
+    limit = 100
+    skip = 0
+
+    while True:
+        entries = client.entries(space_ID, api_environment_id).all({
+            'content_type': 'surveyInstitution',
+            'limit': limit,
+            'skip': skip
+        })
+
+        if not entries:
+            break
+
+        for entry in entries:  # entries is iterable directly
+            institution_id_list.append(entry.sys['id'])  # or entry.id
+
+        if len(entries) < limit:
+            break  # no more pages
+        
+        print(f'downloaded first {skip + 100} institutions')
+        skip += limit
     
     #STEP 2: add institutions (with fields) to list_of_institution_with_fields
+    getting_institution_data_counter = 1
     for i in institution_id_list:
         #get the entry
         entry = client.entries(space_ID, api_environment_id).find(i)
@@ -53,17 +81,22 @@ def build_institution_list():
         fields['institution_contentful_id'] = i
         #append to list_of_institutions_with_fields
         list_of_institutions_with_fields.append(fields)
+        print(f'getting data for institution number {getting_institution_data_counter}')
+        getting_institution_data_counter += 1
 
     #STEP 3 update list_of_institutions_with_fields to include uid for data platform entries 
     for i in list_of_institutions_with_fields:
         #this is going to be how you extract the list of data platform references 
         #create a temporary list to hold all of the ids
         list_of_data_platforms = []
-        for e in i['data_platform']:
-            #add each platform id to the temporary list
-            list_of_data_platforms.append(e.id)
-        #replace existing data_platform entry with the list because that will be easier to work with
-        i['data_platform'] = list_of_data_platforms
+        try:
+            for e in i['data_platform']:
+                #add each platform id to the temporary list
+                list_of_data_platforms.append(e.id)
+            #replace existing data_platform entry with the list because that will be easier to work with
+            i['data_platform'] = list_of_data_platforms
+        except:
+            print(f"(line 58) no platform for {i}")
         # print(list_of_data_platforms)
     print("completed build_institution_list")
 
@@ -80,7 +113,9 @@ def get_open_data_volume_from_wikidata_url(url_from_field):
         #find the table in that div
         table = div.find('table', style='vertical-align: middle; background: #fafafa; width: 100%;')
         #find the td in that table, get the text, and strip out any commas
-        target_td = table.find('td').text.strip().replace(',', '')
+        #on 8/6/25 you changed this because all of the other platform functions added a comma and you couldn't remember why you stripped it out for wikimedia 
+        #target_td = table.find('td').text.strip().replace(',', '')
+        target_td = table.find('td').text.strip()
         #return the value 
         return(target_td)
     except:
@@ -126,7 +161,15 @@ def get_flickr_upload_count_by_url(url_from_field):
     url_to_UID_data = url_to_UID_response.json()
     
     #pull out the target UID
-    target_UID = url_to_UID_data['user']['id']
+    try:
+        target_UID = url_to_UID_data['user']['id']
+    except:
+        print('*******')
+        print('*******')
+        print(f'problem with flickr entry {url_to_UID_data}')
+        error_log_contents.append(url_to_UID_data)
+        print('*******')
+        print('*******')
     
 
     #STEP 2: use flickr ID to get the upload count
@@ -165,11 +208,15 @@ def get_open_data_volume_from_europeana_url(url_from_field):
     #some urls  look like:
     #https://www.europeana.eu/search?qf=DATA_PROVIDER%3A%22Museum%20Rotterdam%22&query=&reusability=open
     if 'DATA_PROVIDER' in url_from_field:
-        print('DATA_PROVIDER entry')
-        extracted_uid_pattern = r'DATA_PROVIDER%3A%22(.*?)%22'
-        extracted_museum_name = re.search(extracted_uid_pattern, url_from_field).group(1)
-        formatted_extracted_museum_name = extracted_museum_name.replace('%20', '+')
-        count_query_url = 'https://api.europeana.eu/record/search.json?wskey=' + europeana_api_key + '&sort=score+desc,contentTier+desc,random_europeana+asc,timestamp_update+desc,europeana_id+asc&qf=DATA_PROVIDER:"' + formatted_extracted_museum_name + '"&qf=contentTier:(1+OR+2+OR+3+OR+4)&query=*:*&reusability=open'
+        try:
+            print('DATA_PROVIDER entry')
+            extracted_uid_pattern = r'DATA_PROVIDER%3A%22(.*?)%22'
+            extracted_museum_name = re.search(extracted_uid_pattern, url_from_field).group(1)
+            formatted_extracted_museum_name = extracted_museum_name.replace('%20', '+')
+            count_query_url = 'https://api.europeana.eu/record/search.json?wskey=' + europeana_api_key + '&sort=score+desc,contentTier+desc,random_europeana+asc,timestamp_update+desc,europeana_id+asc&qf=DATA_PROVIDER:"' + formatted_extracted_museum_name + '"&qf=contentTier:(1+OR+2+OR+3+OR+4)&query=*:*&reusability=open'
+        except:
+            error_log_contents.append(url_from_field)
+            return 'broken'
 
         
     #others look like
@@ -235,12 +282,19 @@ def get_open_data_volume_from_europeana_url(url_from_field):
     object_count_api_response = requests.get(count_query_url)
     #turn it into a json
     extracted_object_count_api_response = object_count_api_response.json()
-    #get the count (int)
-    unformatted_object_count = extracted_object_count_api_response['totalResults']
-    #add the commas
-    formatted_volume_count = "{:,}".format(unformatted_object_count)
-    #turn it into a string
-    target_count = str(formatted_volume_count)
+    try:
+        #get the count (int)
+        unformatted_object_count = extracted_object_count_api_response['totalResults']
+        #add the commas
+        formatted_volume_count = "{:,}".format(unformatted_object_count)
+        #turn it into a string
+        target_count = str(formatted_volume_count)
+    except:
+        print('******')
+        print('******')
+        print(f'problem with europeana entry {extracted_object_count_api_response}')
+        error_log_contents.append(extracted_object_count_api_response)
+        target_count = 'broken'
 
     #print(target_count)
     return target_count
@@ -308,7 +362,7 @@ for i in list_of_institutions_with_fields:
             # #save the updated entry back to contentful
             entry.save()    
             #publish the updated entry
-            #entry.publish()  
+            entry.publish()  
 
             #logging
             log_entry = {'institution_name':i['institution_name'],
@@ -332,6 +386,14 @@ with open(log_file_name, 'w') as f:
     for line in log_contents:
         f.write(f"{line}\n")
 
+#write the error log
+#timestamp = time.strftime('%Y%m%d')
+error_log_file_name = 'logs/'+timestamp+'update_counts_error_log.txt'
+
+with open(error_log_file_name, 'w') as f:
+    for line in error_log_contents:
+        f.write(f"{line}\n")
+
 #send the update email if the email bit has been flipped
 if send_email == 1:
     # create yagmail instance
@@ -348,6 +410,10 @@ if send_email == 1:
         for i in log_contents:
             update = i['institution_name'] + ' volume count was updated from:\n\n' + i['old_value'] +'\n\n' + 'to:\n\n' + i['new_value'] + '\n----------\n\n'
             body_string = update + body_string
+    if not error_log_contents:
+        pass
+    else:
+        body_string = "check log for errors \n" + body_string
     #send the email 
     yag.send(to = send_email_address, subject = subject, contents = body_string)
     print('email sent')
