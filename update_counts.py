@@ -157,11 +157,13 @@ def get_flickr_upload_count_by_url(url_from_field):
 
     #get API data
     url_to_UID_response = requests.get(api_url, params=flickr_url_to_flickr_uid_params)
-    #turn it into json
-    url_to_UID_data = url_to_UID_response.json()
     
-    #pull out the target UID
+    
+    
     try:
+        #turn it into json
+        url_to_UID_data = url_to_UID_response.json()
+        #pull out the target UID
         target_UID = url_to_UID_data['user']['id']
     except:
         print('*******')

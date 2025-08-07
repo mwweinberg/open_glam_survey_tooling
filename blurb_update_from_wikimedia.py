@@ -200,6 +200,8 @@ for i in list_of_institutions_with_fields:
                             'new_blurb': new_institution_blurb
                             }
                 log_contents.append(log_entry)
+                #set the send email bit
+                send_email = 1
         #if the `institution_description` do not exist
         else:
             #get the current version of the blurb
@@ -239,7 +241,7 @@ with open(log_file_name, 'w') as f:
 #send the update email if the email bit has been flipped
 if send_email == 1:
     # create yagmail instance
-    yag = yagmail.SMTP('certification@oshwa.org', secrets.yagmail_key)
+    yag = yagmail.SMTP('openglamsurveyrobot@gmail.com', secrets.yagmail_key)
     #add the subject line
     subject = 'OGS blurb updates for '+timestamp
     #create the empty body string
