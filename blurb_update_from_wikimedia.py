@@ -26,7 +26,7 @@ log_contents = []
 #send email bit
 send_email = 0
 #log email addresses
-send_email_address = ["mweinberg@nyu.edu", "hello@michaelweinberg.org"]
+send_email_address = ["mweinberg@nyu.edu", "hello@douglasmccarthy.com", "a@andeewallace.com"]
 
 def build_institution_list():
 

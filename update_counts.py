@@ -5,6 +5,7 @@ import requests
 import re
 import time
 import yagmail
+import urllib.parse
 
 
 space_ID = secrets.api_test_space_ID
@@ -23,7 +24,7 @@ log_contents = []
 #send email bit
 send_email = 0
 #log email addresses
-send_email_address = ["mweinberg@nyu.edu", "hello@michaelweinberg.org"]
+send_email_address = ["mweinberg@nyu.edu", "hello@douglasmccarthy.com", "a@andeewallace.com"]
 
 
 error_log_contents = []
@@ -212,10 +213,20 @@ def get_open_data_volume_from_europeana_url(url_from_field):
     if 'DATA_PROVIDER' in url_from_field:
         try:
             print('DATA_PROVIDER entry')
-            extracted_uid_pattern = r'DATA_PROVIDER%3A%22(.*?)%22'
-            extracted_museum_name = re.search(extracted_uid_pattern, url_from_field).group(1)
-            formatted_extracted_museum_name = extracted_museum_name.replace('%20', '+')
-            count_query_url = 'https://api.europeana.eu/record/search.json?wskey=' + europeana_api_key + '&sort=score+desc,contentTier+desc,random_europeana+asc,timestamp_update+desc,europeana_id+asc&qf=DATA_PROVIDER:"' + formatted_extracted_museum_name + '"&qf=contentTier:(1+OR+2+OR+3+OR+4)&query=*:*&reusability=open'
+            decoded_url = urllib.parse.unquote(url_from_field)
+            #extracted_uid_pattern = r'DATA_PROVIDER%3A%22(.*?)%22'
+            extracted_uid_pattern = r'DATA_PROVIDER:"(.*?)"'
+            #extracted_museum_name = re.search(extracted_uid_pattern, url_from_field).group(1)
+            match_for_museum_name = re.search(extracted_uid_pattern, decoded_url)
+            
+            if match_for_museum_name:
+                extracted_museum_name = match_for_museum_name.group(1)
+                formatted_extracted_museum_name = extracted_museum_name.replace(' ', '+')
+                count_query_url = 'https://api.europeana.eu/record/search.json?wskey=' + europeana_api_key + '&sort=score+desc,contentTier+desc,random_europeana+asc,timestamp_update+desc,europeana_id+asc&qf=DATA_PROVIDER:"' + formatted_extracted_museum_name + '"&qf=contentTier:(1+OR+2+OR+3+OR+4)&query=*:*&reusability=open'
+            else:
+                error_log_contents.append(url_from_field)
+                return 'broken'
+        
         except:
             error_log_contents.append(url_from_field)
             return 'broken'
