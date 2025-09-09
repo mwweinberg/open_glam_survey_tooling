@@ -8,3 +8,5 @@ update_counts.py is the script to update volume counts from an ever-expanding(?)
 contentful2csv.py is the script to output all of contentful into a csv. That csv is 'contentful2csv.csv' and will be saved in the same directory. 
 
 date_fix.py is a script to fix the "first open access instance citation" field, which had some bad data at one point.  This script can probably also be modified to mass update anything on an institution page. 
+
+europeana_survey_diff.py is to check which institutions are in europeana but not in the survey 
