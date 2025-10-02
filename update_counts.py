@@ -334,61 +334,68 @@ for i in list_of_institutions_with_fields:
     this_institutions_data_platforms = i['data_platform']
     #iterate through it to get the info about the individual data platforms
     for e in this_institutions_data_platforms:
-        #get the entry 
-        entry = client.entries(space_ID, api_environment_id).find(e)
-        #get the fields in the entry 
-        fields = entry.fields()
-        #get the current number of entries as a string to compare to the updated
-        current_open_data_volume = str(fields['open_data_volume'])
-        #variable for updated number of entries (to be filled by the if statements)
-        updated_open_data_volume = ''
+        try:
+            #get the entry 
+            entry = client.entries(space_ID, api_environment_id).find(e)
+            #get the fields in the entry 
+            fields = entry.fields()
+            #get the current number of entries as a string to compare to the updated
+            current_open_data_volume = str(fields['open_data_volume'])
+            #variable for updated number of entries (to be filled by the if statements)
+            updated_open_data_volume = ''
 
-        #these if statements invoke platform-specific functions to get updated data
-        #wikimedia
-        if fields['open_data_platform'] == 'Wikimedia Commons':
-            #print('wikimedia volume is ' + fields['open_data_volume'])
-            #pass this to the function
-            wikimedia_url = fields['open_data_platform_url']
-            #get the value 
-            wikimedia_value = get_open_data_volume_from_wikidata_url(wikimedia_url)
-            #run the update
-            updated_open_data_volume = updated_data_report(wikimedia_value, wikimedia_url)
-        elif fields['open_data_platform'] == 'Flickr' or fields['open_data_platform'] == 'Flickr Commons':
-            flickr_url = fields['open_data_platform_url']
-            flickr_value = get_flickr_upload_count_by_url(flickr_url)
-            updated_open_data_volume = updated_data_report(flickr_value, flickr_url)
-        elif fields['open_data_platform'] == 'Europeana':
-            europeana_url = fields['open_data_platform_url']
-            europeana_value = get_open_data_volume_from_europeana_url(europeana_url)
-            updated_open_data_volume = updated_data_report(europeana_value, europeana_url)
-        #TODO: elifs for all of the other platforms - return values as strings with commas 
-        #catch-all for everything without a function to update it - don't change anything!
-        else:
-            updated_open_data_volume = current_open_data_volume
-        
-        #if the data volume has changed
-        if current_open_data_volume != updated_open_data_volume:
-            print("DIFFERENCE! Current volume = " + current_open_data_volume + " and updated_data_volume is " + updated_open_data_volume)
+            #these if statements invoke platform-specific functions to get updated data
+            #wikimedia
+            if fields['open_data_platform'] == 'Wikimedia Commons':
+                #print('wikimedia volume is ' + fields['open_data_volume'])
+                #pass this to the function
+                wikimedia_url = fields['open_data_platform_url']
+                #get the value 
+                wikimedia_value = get_open_data_volume_from_wikidata_url(wikimedia_url)
+                #run the update
+                updated_open_data_volume = updated_data_report(wikimedia_value, wikimedia_url)
+            elif fields['open_data_platform'] == 'Flickr' or fields['open_data_platform'] == 'Flickr Commons':
+                flickr_url = fields['open_data_platform_url']
+                flickr_value = get_flickr_upload_count_by_url(flickr_url)
+                updated_open_data_volume = updated_data_report(flickr_value, flickr_url)
+            elif fields['open_data_platform'] == 'Europeana':
+                europeana_url = fields['open_data_platform_url']
+                europeana_value = get_open_data_volume_from_europeana_url(europeana_url)
+                updated_open_data_volume = updated_data_report(europeana_value, europeana_url)
+            #TODO: elifs for all of the other platforms - return values as strings with commas 
+            #catch-all for everything without a function to update it - don't change anything!
+            else:
+                updated_open_data_volume = current_open_data_volume
             
-            #update the data volume 
-            entry.fields()['open_data_volume'] = updated_open_data_volume
-            # #save the updated entry back to contentful
-            entry.save()    
-            #publish the updated entry
-            entry.publish()  
+            #if the data volume has changed
+            if current_open_data_volume != updated_open_data_volume:
+                print("DIFFERENCE! Current volume = " + current_open_data_volume + " and updated_data_volume is " + updated_open_data_volume)
+                
+                #update the data volume 
+                entry.fields()['open_data_volume'] = updated_open_data_volume
+                # #save the updated entry back to contentful
+                entry.save()    
+                #publish the updated entry
+                entry.publish()  
 
-            #logging
-            log_entry = {'institution_name':i['institution_name'],
-                            #'institution_contentful_id':i[institution_contentful_id], 
-                            'data_platform': fields['open_data_platform'],
-                            'old_value': current_open_data_volume,
-                            'new_value': updated_open_data_volume
-                            }
-            log_contents.append(log_entry)
+                #logging
+                log_entry = {'institution_name':i['institution_name'],
+                                #'institution_contentful_id':i[institution_contentful_id], 
+                                'data_platform': fields['open_data_platform'],
+                                'old_value': current_open_data_volume,
+                                'new_value': updated_open_data_volume
+                                }
+                log_contents.append(log_entry)
+                #flip the email bit
+                send_email = 1
+            else:
+                print("THE SAME! Current volume = " + current_open_data_volume + " and updated_data_volume is " + updated_open_data_volume)
+        except:
+            error_message = "*******problem with " + e           
+            print(error_message)
+            log_contents.append(error_message)
             #flip the email bit
             send_email = 1
-        else:
-            print("THE SAME! Current volume = " + current_open_data_volume + " and updated_data_volume is " + updated_open_data_volume)    
         
 
 #write the change log
@@ -421,8 +428,12 @@ if send_email == 1:
         body_string = "no updates today!"
     else: 
         for i in log_contents:
-            update = i['institution_name'] + ' volume count was updated from:\n\n' + i['old_value'] +'\n\n' + 'to:\n\n' + i['new_value'] + '\n----------\n\n'
-            body_string = update + body_string
+            try:
+                update = i['institution_name'] + ' volume count was updated from:\n\n' + i['old_value'] +'\n\n' + 'to:\n\n' + i['new_value'] + '\n----------\n\n'
+                body_string = update + body_string
+            except:
+                update = "check logs for more errors"
+                body_string = update + body_string
     if not error_log_contents:
         pass
     else:
