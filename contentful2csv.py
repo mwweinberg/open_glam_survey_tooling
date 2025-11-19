@@ -1,6 +1,7 @@
 import secrets
 import contentful_management 
 import csv
+import time
 
 
 space_ID = secrets.api_test_space_ID
@@ -10,6 +11,7 @@ api_environment_id = secrets.api_env
 #initiate the client
 client = contentful_management.Client(management_api_token)
 
+strange_error_log = []
 
 #******global things 
 #create a holder for the institution dictionaries 
@@ -21,40 +23,47 @@ def build_institution_list():
     institution_id_list = []
 
     #STEP 1: get all of the 'surveyInstitution' entries 
+
+    ######UNCOMMENT THIS TO JUST PULL 100 ENTRIES
     #returns some sort of object of the entries
-    # entries_just_institutions = client.entries(space_ID, api_environment_id).all({'content_type': 'surveyInstitution'})
-    # #append all of the object ids to institution_id_list
-    # for i in entries_just_institutions:
-    #     #extract the institution ID
-    #     entry_id = i.id
-    #     #add the institution id to the list
-    #     institution_id_list.append(entry_id)
-    #     #print for testing/debugging 
-    #     # print(entry_id)
-    #     #print(f'institution_id_list length = {len(institution_id_list)}')
+    entries_just_institutions = client.entries(space_ID, api_environment_id).all({'content_type': 'surveyInstitution'})
+    #append all of the object ids to institution_id_list
+    # change [:n] to limit to a smaller sample
+    for i in entries_just_institutions[:90]:
+        #extract the institution ID
+        entry_id = i.id
+        #add the institution id to the list
+        institution_id_list.append(entry_id)
+
+            #print for testing/debugging 
+            # print(entry_id)
+            #print(f'institution_id_list length = {len(institution_id_list)}')
+    ######END UNCOMMENT THIS JUST TO PULL 100 ENTRIES SECTION
 
     #updated version of STEP 1 to deal with contentful pagination
-    limit = 100
-    skip = 0
+    ####START NORMAL STEP 1 SECTION
+    # limit = 100
+    # skip = 0
 
-    while True:
-        entries = client.entries(space_ID, api_environment_id).all({
-            'content_type': 'surveyInstitution',
-            'limit': limit,
-            'skip': skip
-        })
+    # while True:
+    #     entries = client.entries(space_ID, api_environment_id).all({
+    #         'content_type': 'surveyInstitution',
+    #         'limit': limit,
+    #         'skip': skip
+    #     })
 
-        if not entries:
-            break
+    #     if not entries:
+    #         break
 
-        for entry in entries:  # entries is iterable directly
-            institution_id_list.append(entry.sys['id'])  # or entry.id
+    #     for entry in entries:  # entries is iterable directly
+    #         institution_id_list.append(entry.sys['id'])  # or entry.id
 
-        if len(entries) < limit:
-            break  # no more pages
+    #     if len(entries) < limit:
+    #         break  # no more pages
         
-        print(f'downloaded first {skip + 100} institutions')
-        skip += limit
+    #     print(f'downloaded first {skip + 100} institutions')
+    #     skip += limit
+    #####END NORMAL STEP 1 SECTION
     
     #STEP 2: add institutions (with fields) to list_of_institution_with_fields
     getting_institution_data_counter = 1
@@ -136,6 +145,28 @@ for i in list_of_institutions_with_fields:
     #if the first_open_access_instance date is empty it defaults to 1/1/70. That is read as "null" when the site is being built. This changes the output to match that. 
     if i.get('first_open_access_instance') == '1970-01-01T00:00:00.000Z':
         i['first_open_access_instance'] = 'null'
+    
+
+    #create the open_data_volume_total column
+    
+    #small function to convert open_data_volume_numbers into ints, returning log if something is really strange 
+    def safe_int(value):
+        """Convert to int, returning 0 if not possible"""
+        if value is None:
+            return 0
+        try:
+            return int(str(value).replace(',', ''))
+        except ValueError:
+            print(f"*****ERROR {i}")
+            strange_error_log.append(i)
+            return 0
+            
+    #the ,'0' syntax in get() makes 0 the default value if open_data_volume_numberX does not exist
+    # and the '.replace(',', '')' clears out any lingering commas in the values 
+    total_number = safe_int(i.get('open_data_volume_number0')) + safe_int(i.get('open_data_volume_number1')) + safe_int(i.get('open_data_volume_number2'))
+    i['open_data_volume_total'] = total_number
+
+    print(f"total number: {total_number}")
 
 
 
@@ -144,7 +175,7 @@ for i in list_of_institutions_with_fields:
 
 #every key in the dict must be in this list, but having a key in this list without a corresponding value in an item is not a problem
 #that's why you have a bunch of 'open_data_volume_XY' entries at the end
-fieldnames = ['institution_name', 'institution_name_english', 'pretty_url', 'country', 'part_of', 'institution_type', 'institution_website', 'institution_wikidata', 'first_open_access_instance', 'first_open_access_instance_citation', 'open_access_scope', 'open_access_policy', 'tk_tce_policy', 'rights_statement_compliance', 'rights_statement_metadata', 'rights_statement_metadata_url', 'admission_policy', 'institution_api', 'institution_github',  'open_data_volume_name0', 'open_data_volume_number0', 'open_data_volume_url0','open_data_volume_name1', 'open_data_volume_number1', 'open_data_volume_url1','open_data_volume_name2', 'open_data_volume_number2', 'open_data_volume_url2', 'open_data_volume_name3', 'open_data_volume_number3', 'open_data_volume_url3', 'open_data_volume_name4', 'open_data_volume_number4', 'open_data_volume_url4', 'open_data_volume_name5', 'open_data_volume_number5', 'open_data_volume_url5']
+fieldnames = ['institution_name', 'institution_name_english', 'pretty_url', 'country', 'part_of', 'institution_type', 'institution_website', 'institution_wikidata', 'first_open_access_instance', 'first_open_access_instance_citation', 'open_access_scope', 'open_access_policy', 'tk_tce_policy', 'rights_statement_compliance', 'rights_statement_metadata', 'rights_statement_metadata_url', 'admission_policy', 'institution_api', 'institution_github', 'open_data_volume_total',  'open_data_volume_name0', 'open_data_volume_number0', 'open_data_volume_url0','open_data_volume_name1', 'open_data_volume_number1', 'open_data_volume_url1','open_data_volume_name2', 'open_data_volume_number2', 'open_data_volume_url2', 'open_data_volume_name3', 'open_data_volume_number3', 'open_data_volume_url3', 'open_data_volume_name4', 'open_data_volume_number4', 'open_data_volume_url4', 'open_data_volume_name5', 'open_data_volume_number5', 'open_data_volume_url5']
 
 #these are the fieldnames that exist in the dictionary but will be skipped.
 #this works because the instantiation of DictWriter below uses the `extrasaction='ignore'` argument, which means that when it finds a key not in the fieldnames list it just skips it (default behavior is to stop and raise an issue)
@@ -161,3 +192,11 @@ with open('contentful2csv.csv', 'w') as csv_file:
     writer.writerows(list_of_institutions_with_fields)
 
 print('.csv complete')
+
+#this is a log of any institutions that have non-number values in their open data counts
+timestamp = time.strftime('%Y%m%d')
+error_log_file_name = 'logs/'+timestamp+'contentful2csv.txt'
+with open(error_log_file_name, 'w') as f:
+    for line in strange_error_log:
+        f.write(f"{line}\n")
+        f.write('***\n')
