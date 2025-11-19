@@ -29,7 +29,7 @@ def build_institution_list():
     entries_just_institutions = client.entries(space_ID, api_environment_id).all({'content_type': 'surveyInstitution'})
     #append all of the object ids to institution_id_list
     # change [:n] to limit to a smaller sample
-    for i in entries_just_institutions[:90]:
+    for i in entries_just_institutions[:30]:
         #extract the institution ID
         entry_id = i.id
         #add the institution id to the list
@@ -115,8 +115,8 @@ for i in list_of_institutions_with_fields:
             entry = client.entries(space_ID, api_environment_id).find(e)
             #get the fields in the entry 
             fields = entry.fields()
-            #print(fields)
-            #print('&&&&&&')
+            print(fields)
+            print('&&&&&&')
             #constructs the open_data_volume_name and _number so that it can iterate
             open_data_volume_name = 'open_data_volume_name'+str(platform_counter)
             open_data_volume_number = 'open_data_volume_number'+str(platform_counter)
@@ -147,8 +147,7 @@ for i in list_of_institutions_with_fields:
         i['first_open_access_instance'] = 'null'
     
 
-    #create the open_data_volume_total column
-    
+    ###create the open_data_volume_total column
     #small function to convert open_data_volume_numbers into ints, returning log if something is really strange 
     def safe_int(value):
         """Convert to int, returning 0 if not possible"""
@@ -159,14 +158,22 @@ for i in list_of_institutions_with_fields:
         except ValueError:
             print(f"*****ERROR {i}")
             strange_error_log.append(i)
-            return 0
-            
+            return 0       
     #the ,'0' syntax in get() makes 0 the default value if open_data_volume_numberX does not exist
     # and the '.replace(',', '')' clears out any lingering commas in the values 
     total_number = safe_int(i.get('open_data_volume_number0')) + safe_int(i.get('open_data_volume_number1')) + safe_int(i.get('open_data_volume_number2'))
     i['open_data_volume_total'] = total_number
-
     print(f"total number: {total_number}")
+
+    ###some first_open_access_instance fields are blank, some are YYYY, and some are YYYY-MM-DD
+    ###this section normalizes all YYYY-MM-DD to just YYYY
+    #pull the entry for first_open_access_instance using .get so things won't crash if there is no value
+    first_open_access_instance_holder = i.get('first_open_access_instance')
+    #if it exists (some of them are empty, so this checks that) AND the length of it = 10 (the number of characters in the YYYY-MM-DD format)
+    if first_open_access_instance_holder and len(first_open_access_instance_holder) == 10:
+        #then replace the value with the first four characters, which should be YYYY
+        i['first_open_access_instance'] = first_open_access_instance_holder[:4]
+        
 
 
 
