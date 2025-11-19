@@ -29,7 +29,7 @@ def build_institution_list():
     entries_just_institutions = client.entries(space_ID, api_environment_id).all({'content_type': 'surveyInstitution'})
     #append all of the object ids to institution_id_list
     # change [:n] to limit to a smaller sample
-    for i in entries_just_institutions[:30]:
+    for i in entries_just_institutions[:10]:
         #extract the institution ID
         entry_id = i.id
         #add the institution id to the list
@@ -92,6 +92,7 @@ def build_institution_list():
             i['data_platform'] = list_of_data_platforms
         except:
             print(f"(line 58) no platform for {i}")
+            print('')
         # print(list_of_data_platforms)
     print("completed build_institution_list")
 
@@ -115,14 +116,52 @@ for i in list_of_institutions_with_fields:
             entry = client.entries(space_ID, api_environment_id).find(e)
             #get the fields in the entry 
             fields = entry.fields()
-            print(fields)
             print('&&&&&&')
+            #print(fields)
+            #print('&&&&&&')
             #constructs the open_data_volume_name and _number so that it can iterate
             open_data_volume_name = 'open_data_volume_name'+str(platform_counter)
             open_data_volume_number = 'open_data_volume_number'+str(platform_counter)
             open_data_volume_url = 'open_data_volume_url'+str(platform_counter)
+            open_data_volume_rs = 'open_data_volume_rs'+str(platform_counter)
+
+            #####START RIGHT STATEMENT INFO SECTION
+
+            # #get the rights_statement info for the platform (may be more than one)
+            right_statement_counter = 0
+            #the objects in this list have a bunch of metadata (<Link[Entry] id='28kfRD9rU7AL3IhXjd4I05'>)
+            this_platform_rights_statements = fields['rights_statements']
+            #so you need to iterate through them and just pull the relevant ids
+            this_platform_rights_statements_ids = []
+            for q in this_platform_rights_statements:
+                this_platform_rights_statements_ids.append(q.id)
+
+            # print('*****')
+            # print(this_platform_rights_statements_ids)
+            # print('****')
+            platform_rs_list = []
+            for h in this_platform_rights_statements_ids:
+                rs_entry = client.entries(space_ID, api_environment_id).find(h)
+                rs_fields = rs_entry.fields()
+                rs_identity = rs_fields['title']
+                platform_rs_list.append(rs_identity)
+                # print('*****')
+                # print(rs_identity)
+                # print('*****')
+                # rs_name = 'rs_name'+str(right_statement_counter)
+                # platform_rs_dict.update({rs_name:rs_identity})
+            # for h in this_platform_rights_statements:
+            #     rs_entry = client.entries(space_ID, api_environment_id).find(h)
+            #     rs_fields = rs_entry.fields()
+            #     print('*****')
+            #     print(rs_fields)
+            #     print('*****')
+
+            ######END RIGHT STATEMENT INFO SECTION
+
+
             #creates a dictionary to add to the i entry 
-            platform_count_dict = {open_data_volume_name: fields['open_data_platform'], open_data_volume_number: fields['open_data_volume'], open_data_volume_url: fields['open_data_platform_url']}
+            platform_count_dict = {open_data_volume_name: fields['open_data_platform'], open_data_volume_number: fields['open_data_volume'], open_data_volume_url: fields['open_data_platform_url'], open_data_volume_rs:platform_rs_list}
             #puts the whole platform_count_dict at the end of the existing i entry 
             i.update(platform_count_dict)
             #iterates the platform_counter
@@ -131,8 +170,9 @@ for i in list_of_institutions_with_fields:
             #print('^^^^^^^')
             print(f'getting data platforms for institution number {getting_platforms_data_counter}')
             getting_platforms_data_counter += 1
-    except:
+    except Exception as e:
         print(f"(line 96) no data platform for {i}")
+        print('')
 print('added data platforms')
 
 
@@ -182,7 +222,7 @@ for i in list_of_institutions_with_fields:
 
 #every key in the dict must be in this list, but having a key in this list without a corresponding value in an item is not a problem
 #that's why you have a bunch of 'open_data_volume_XY' entries at the end
-fieldnames = ['institution_name', 'institution_name_english', 'pretty_url', 'country', 'part_of', 'institution_type', 'institution_website', 'institution_wikidata', 'first_open_access_instance', 'first_open_access_instance_citation', 'open_access_scope', 'open_access_policy', 'tk_tce_policy', 'rights_statement_compliance', 'rights_statement_metadata', 'rights_statement_metadata_url', 'admission_policy', 'institution_api', 'institution_github', 'open_data_volume_total',  'open_data_volume_name0', 'open_data_volume_number0', 'open_data_volume_url0','open_data_volume_name1', 'open_data_volume_number1', 'open_data_volume_url1','open_data_volume_name2', 'open_data_volume_number2', 'open_data_volume_url2', 'open_data_volume_name3', 'open_data_volume_number3', 'open_data_volume_url3', 'open_data_volume_name4', 'open_data_volume_number4', 'open_data_volume_url4', 'open_data_volume_name5', 'open_data_volume_number5', 'open_data_volume_url5']
+fieldnames = ['institution_name', 'institution_name_english', 'pretty_url', 'country', 'part_of', 'institution_type', 'institution_website', 'institution_wikidata', 'first_open_access_instance', 'first_open_access_instance_citation', 'open_access_scope', 'open_access_policy', 'tk_tce_policy', 'rights_statement_compliance', 'rights_statement_metadata', 'rights_statement_metadata_url', 'admission_policy', 'institution_api', 'institution_github', 'open_data_volume_total',  'open_data_volume_name0', 'open_data_volume_number0', 'open_data_volume_url0', 'open_data_volume_rs0', 'open_data_volume_name1', 'open_data_volume_number1', 'open_data_volume_url1', 'open_data_volume_rs1','open_data_volume_name2', 'open_data_volume_number2', 'open_data_volume_url2', 'open_data_volume_rs2', 'open_data_volume_name3', 'open_data_volume_number3', 'open_data_volume_url3', 'open_data_volume_rs3', 'open_data_volume_name4', 'open_data_volume_number4', 'open_data_volume_url4', 'open_data_volume_rs4', 'open_data_volume_name5', 'open_data_volume_number5', 'open_data_volume_url5', 'open_data_volume_rs5']
 
 #these are the fieldnames that exist in the dictionary but will be skipped.
 #this works because the instantiation of DictWriter below uses the `extrasaction='ignore'` argument, which means that when it finds a key not in the fieldnames list it just skips it (default behavior is to stop and raise an issue)
