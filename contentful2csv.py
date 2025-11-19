@@ -133,29 +133,24 @@ for i in list_of_institutions_with_fields:
             this_platform_rights_statements = fields['rights_statements']
             #so you need to iterate through them and just pull the relevant ids
             this_platform_rights_statements_ids = []
+            #pull just the ids
             for q in this_platform_rights_statements:
                 this_platform_rights_statements_ids.append(q.id)
 
-            # print('*****')
-            # print(this_platform_rights_statements_ids)
-            # print('****')
+            #list to hold the rightsstatements for the platform
             platform_rs_list = []
+            #iterate through each of the ids associated with a rights statement used on the platform
             for h in this_platform_rights_statements_ids:
+                #get the entry
                 rs_entry = client.entries(space_ID, api_environment_id).find(h)
+                #convert it into the fields
                 rs_fields = rs_entry.fields()
+                #pull out title of the rightstatement (e.g. "CC BY")
                 rs_identity = rs_fields['title']
+                #append it to the list of all of the rightsstatements used by that institution on that platform
                 platform_rs_list.append(rs_identity)
-                # print('*****')
-                # print(rs_identity)
-                # print('*****')
-                # rs_name = 'rs_name'+str(right_statement_counter)
-                # platform_rs_dict.update({rs_name:rs_identity})
-            # for h in this_platform_rights_statements:
-            #     rs_entry = client.entries(space_ID, api_environment_id).find(h)
-            #     rs_fields = rs_entry.fields()
-            #     print('*****')
-            #     print(rs_fields)
-            #     print('*****')
+                #(the list is included in teh platform_count_dict below)
+
 
             ######END RIGHT STATEMENT INFO SECTION
 
