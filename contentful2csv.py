@@ -25,44 +25,44 @@ def build_institution_list():
     #STEP 1: get all of the 'surveyInstitution' entries 
 
     ######UNCOMMENT THIS TO JUST PULL 100 ENTRIES
-    #returns some sort of object of the entries
-    entries_just_institutions = client.entries(space_ID, api_environment_id).all({'content_type': 'surveyInstitution'})
-    #append all of the object ids to institution_id_list
-    # change [:n] to limit to a smaller sample
-    for i in entries_just_institutions[:10]:
-        #extract the institution ID
-        entry_id = i.id
-        #add the institution id to the list
-        institution_id_list.append(entry_id)
+    # #returns some sort of object of the entries
+    # entries_just_institutions = client.entries(space_ID, api_environment_id).all({'content_type': 'surveyInstitution'})
+    # #append all of the object ids to institution_id_list
+    # #!#!#!#!#!# change [:n] to limit to a smaller sample
+    # for i in entries_just_institutions[:90]:
+    #     #extract the institution ID
+    #     entry_id = i.id
+    #     #add the institution id to the list
+    #     institution_id_list.append(entry_id)
 
-            #print for testing/debugging 
-            # print(entry_id)
-            #print(f'institution_id_list length = {len(institution_id_list)}')
+    #         #print for testing/debugging 
+    #         # print(entry_id)
+    #         #print(f'institution_id_list length = {len(institution_id_list)}')
     ######END UNCOMMENT THIS JUST TO PULL 100 ENTRIES SECTION
 
     #updated version of STEP 1 to deal with contentful pagination
     ####START NORMAL STEP 1 SECTION
-    # limit = 100
-    # skip = 0
+    limit = 100
+    skip = 0
 
-    # while True:
-    #     entries = client.entries(space_ID, api_environment_id).all({
-    #         'content_type': 'surveyInstitution',
-    #         'limit': limit,
-    #         'skip': skip
-    #     })
+    while True:
+        entries = client.entries(space_ID, api_environment_id).all({
+            'content_type': 'surveyInstitution',
+            'limit': limit,
+            'skip': skip
+        })
 
-    #     if not entries:
-    #         break
+        if not entries:
+            break
 
-    #     for entry in entries:  # entries is iterable directly
-    #         institution_id_list.append(entry.sys['id'])  # or entry.id
+        for entry in entries:  # entries is iterable directly
+            institution_id_list.append(entry.sys['id'])  # or entry.id
 
-    #     if len(entries) < limit:
-    #         break  # no more pages
+        if len(entries) < limit:
+            break  # no more pages
         
-    #     print(f'downloaded first {skip + 100} institutions')
-    #     skip += limit
+        print(f'downloaded first {skip + 100} institutions')
+        skip += limit
     #####END NORMAL STEP 1 SECTION
     
     #STEP 2: add institutions (with fields) to list_of_institution_with_fields
