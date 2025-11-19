@@ -11,8 +11,9 @@ This repo has tools for updating entries in the [Open GLAM Survey](https://surve
 
 **contentful_update** contains a bunch of one-off(ish) scripts to update data in contentful. Note that in order to run them you must add the following code at the top (so that it will import secrets.py from the parent folder):
 
-`import sys
-sys.path.append('..')`
+`import sys`
+
+`sys.path.append('..')`
 
 - *date_fix.py* is a script to fix the "first open access instance citation" field, which had some bad data at one point.  This script can probably also be modified to mass update anything on an institution page. 
 
