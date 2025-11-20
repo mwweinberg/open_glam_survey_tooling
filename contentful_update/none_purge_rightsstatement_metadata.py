@@ -103,9 +103,9 @@ for i in list_of_institutions_with_fields:
         #update it (None instead of just '' because just '' threw an error)
         entry.fields()['rights_statement_metadata'] = "Information needed"
         #save the updated entry back to contentful
-        #entry.save()    
+        entry.save()    
         #publish the updated entry
-        #entry.publish()            
+        entry.publish()            
         #append it to the log
         updated_institution_name = entry.fields()['institution_name']
         log_entry = {'institution_name':updated_institution_name,
@@ -117,7 +117,7 @@ for i in list_of_institutions_with_fields:
 
 #write the change log
 timestamp = time.strftime('%Y%m%d')
-log_file_name = 'logs/'+timestamp+'none_purge)_rightsstatement_metadata.txt'
+log_file_name = 'logs/'+timestamp+'none_purge_rightsstatement_metadata.txt'
 
 with open(log_file_name, 'w') as f:
     for line in log_contents:

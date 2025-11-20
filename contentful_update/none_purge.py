@@ -103,9 +103,9 @@ for i in list_of_institutions_with_fields:
         #update it (None instead of just '' because just '' threw an error)
         entry.fields()['admission_policy'] = "N/A"
         #save the updated entry back to contentful
-        #entry.save()    
+        entry.save()    
         #publish the updated entry
-        #entry.publish()            
+        entry.publish()            
         #append it to the log
         updated_institution_name = entry.fields()['institution_name']
         log_entry = {'institution_name':updated_institution_name,
